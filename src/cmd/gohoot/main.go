@@ -1,17 +1,44 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"net/http"
+
+	"github.com/ipj31/gohoot/internal/database"
+	"github.com/ipj31/gohoot/web/templates"
 )
 
-// https://gohoot.auth.us-east-2.amazoncognito.com/oauth2/authorize?response_type=code&client_id=2ndpsrnnp86dfm4s06kidlq5&redirect_uri=http://localhost/user
+func handleHome(w http.ResponseWriter, r *http.Request) {
+	if r.URL.String() != "/" {
+		// i could set up a toast that this sets to show the error
+		http.NotFound(w, r)
+		return
+	}
+
+	templates.Home().Render(context.Background(), w)
+}
+
+func handleRegisterSubmit(w http.ResponseWriter, r *http.Request) {
+	args := templates.RegisterFormArgs{
+		Email:                r.FormValue("email"),
+		Password:             r.FormValue("password"),
+		ConfirmPassword:      r.FormValue("confirm-password"),
+		ConfirmPasswordError: "Passwords do not match!",
+	}
+
+	templates.RegisterForm(args).Render(context.Background(), w)
+}
 
 func main() {
+	_, err := database.NewMongoMatchClient("mongodb://admin:password@localhost:27017")
+	if err != nil {
+		panic(err)
+	}
 
-	http.HandleFunc("/user", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(*r)
-	})
+	// http.HandleFunc("/", handleHome)
+	// http.Handle("/login", templ.Handler(templates.Login()))
+	// http.Handle("/register", templ.Handler(templates.Register()))
+	// http.HandleFunc("/register-submit", handleRegisterSubmit)
 
-	http.ListenAndServe("", nil)
+	// http.ListenAndServe("", nil)
 }

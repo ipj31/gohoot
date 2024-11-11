@@ -26,3 +26,6 @@ go.work.sum
 
 # tmp files for air
 src/tmp/
+
+# the generated templ files
+*_templ.go

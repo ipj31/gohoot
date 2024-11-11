@@ -1,0 +1,19 @@
+name: gohoot
+
+services:
+  mongodb:
+    image: mongo:4.4.6
+    container_name: gohoot-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    ports:
+      - "27017:27017"
+    volumes:
+      - gohoot-mongo-volume:/data/db
+
+# TODO add go service(s) here
+
+volumes:
+  gohoot-mongo-volume:
