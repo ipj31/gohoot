@@ -41,27 +41,32 @@ func NewUserService(databaseClient *database.MongoClient) *UserService {
 	}
 }
 
-func (us *UserService) CreateUser(email, password string) error {
+func (us *UserService) CreateUser(email, password string) (string, error) {
 	hash, err := HashPassword(password)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	us.userCollection.InsertOne(context.Background(), User{Email: email, HashedPassword: hash})
-	return nil
+	result, err := us.userCollection.InsertOne(context.Background(), User{Email: email, HashedPassword: hash})
+	if err != nil {
+		return "", err
+	}
+
+	userID := result.InsertedID.(primitive.ObjectID).Hex()
+	return userID, nil
 }
 
-func (us *UserService) VerifyLogin(email, password string) (bool, error) {
+func (us *UserService) VerifyLogin(email, password string) (string, bool, error) {
 	var user User
 	err := us.userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
 	if err != nil {
-		return false, err
+		return "", false, err
 	}
 
 	err = CheckPassword(user.HashedPassword, password)
 	if err != nil {
-		return false, err
+		return "", false, err
 	}
 
-	return true, err
+	return user.ID.Hex(), true, err
 }
