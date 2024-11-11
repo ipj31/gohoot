@@ -63,6 +63,17 @@ func (rs *RegisterSubmit) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 	confirmPassword := r.FormValue("confirm-password")
 
+	if rs.userService.UniqueEmail(email) {
+		args := templates.RegisterFormArgs{
+			Email:           "",
+			Password:        password,
+			ConfirmPassword: confirmPassword,
+			EmailError:      "Email already exists",
+		}
+		templates.RegisterForm(args).Render(context.Background(), w)
+		return
+	}
+
 	if password != confirmPassword {
 		args := templates.RegisterFormArgs{
 			Email:                email,
@@ -80,7 +91,7 @@ func (rs *RegisterSubmit) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Email:                email,
 			Password:             password,
 			ConfirmPassword:      "",
-			ConfirmPasswordError: "Passwords do not match!",
+			ConfirmPasswordError: "Error creating user",
 		}
 		templates.RegisterForm(args).Render(context.Background(), w)
 		return

@@ -70,3 +70,12 @@ func (us *UserService) VerifyLogin(email, password string) (string, bool, error)
 
 	return user.ID.Hex(), true, err
 }
+
+func (us *UserService) UniqueEmail(email string) bool {
+	var user User
+	err := us.userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
+	if err != nil {
+		return false
+	}
+	return true
+}
