@@ -12,18 +12,6 @@ import (
 	"github.com/ipj31/gohoot/web/templates"
 )
 
-// TODO code cleanup
-
-func setTokenCookie(w http.ResponseWriter, token string) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     "token",
-		Value:    token,
-		Expires:  time.Now().Add(24 * time.Hour),
-		HttpOnly: true,
-		Secure:   false, // TODO change to true when using https
-	})
-}
-
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("token")
@@ -44,6 +32,20 @@ func AuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func userLoggedIn(r *http.Request) bool {
+	cookie, err := r.Cookie("token")
+	if err != nil {
+		return false
+	}
+
+	_, err = services.ValidateJWT(cookie.Value)
+	if err != nil {
+		return false
+	}
+
+	return true
+}
+
 func handleHome(w http.ResponseWriter, r *http.Request) {
 	if r.URL.String() != "/" {
 		// i could set up a toast that this sets to show the error
@@ -51,7 +53,7 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templates.Home().Render(context.Background(), w)
+	templates.Home(userLoggedIn(r)).Render(context.Background(), w)
 }
 
 type RegisterSubmit struct {
@@ -105,7 +107,7 @@ func (rs *RegisterSubmit) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "error creating jwt token", http.StatusInternalServerError)
 		return
 	}
-	setTokenCookie(w, jwtToken)
+	services.SetTokenCookie(w, jwtToken)
 
 	w.Header().Add("HX-Redirect", "/")
 }
@@ -136,9 +138,26 @@ func (uc *LoginSubmit) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "error creating jwt token", http.StatusInternalServerError)
 		return
 	}
-	setTokenCookie(w, jwtToken)
+	services.SetTokenCookie(w, jwtToken)
 
 	w.Header().Add("HX-Redirect", "/")
+}
+
+func clearTokenCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "token",
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   false, // set to true when using https
+	})
+}
+
+func handleSignOut(w http.ResponseWriter, r *http.Request) {
+	clearTokenCookie(w)
+	templates.LoginButton().Render(context.Background(), w)
 }
 
 func authTesting(w http.ResponseWriter, r *http.Request) {
@@ -157,6 +176,8 @@ func main() {
 		panic(err)
 	}
 
+	router := http.NewServeMux()
+
 	userService := services.NewUserService(mongoClient)
 
 	registerSubmitRoute := &RegisterSubmit{
@@ -167,12 +188,12 @@ func main() {
 		userService: userService,
 	}
 
-	http.HandleFunc("/", handleHome)
-	http.Handle("/login", templ.Handler(templates.Login()))
-	http.Handle("/register", templ.Handler(templates.Register()))
-	http.Handle("/register-submit", registerSubmitRoute)
-	http.Handle("/login-submit", loginSubmitRoute)
-	http.Handle("/auth-test", AuthMiddleware(http.HandlerFunc(authTesting)))
+	router.HandleFunc("/", handleHome)
+	router.Handle("/login", templ.Handler(templates.Login()))
+	router.Handle("/register", templ.Handler(templates.Register()))
+	router.Handle("/register-submit", registerSubmitRoute)
+	router.Handle("/login-submit", loginSubmitRoute)
+	router.HandleFunc("/sign-out", handleSignOut)
 
-	http.ListenAndServe("", nil)
+	http.ListenAndServe("", router)
 }

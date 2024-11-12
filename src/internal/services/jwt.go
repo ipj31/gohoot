@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -50,7 +51,15 @@ func ValidateJWT(tokenString string) (string, error) {
 		return "", err
 	}
 
-	fmt.Println(claims)
-
 	return claims.UserID, nil
+}
+
+func SetTokenCookie(w http.ResponseWriter, token string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "token",
+		Value:    token,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+		Secure:   false, // TODO change to true when using https
+	})
 }
