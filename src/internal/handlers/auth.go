@@ -136,13 +136,3 @@ func HandleSignOut(w http.ResponseWriter, r *http.Request) {
 	services.ClearTokenCookie(w)
 	templates.LoginButton().Render(context.Background(), w)
 }
-
-func authTesting(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value("user_id").(string)
-	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	fmt.Println(userID)
-}

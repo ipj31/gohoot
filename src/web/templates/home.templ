@@ -22,7 +22,7 @@ templ Home(loggedIn bool) {
 					<h1 class="text-white text-xl font-bold cursor-default">GoHoot!</h1>
 					if loggedIn {
 						<div id="buttons">
-							<a href="/console" hx-boost="true" class="text-white font-bold px-4 py-2 hover:text-black">My Quizes</a>
+							<a href="/quizzes" hx-boost="true" class="text-white font-bold px-4 py-2 hover:text-black">My Quizzes</a>
 							<button hx-get="/sign-out" hx-target="#buttons" hx-swap="outerHTML" class="bg-white text-blue-600 font-semibold px-4 py-2 rounded hover:bg-gray-100">
 								Log Out	
 							</button>

@@ -9,13 +9,15 @@ type User struct {
 }
 
 type Question struct {
-	Question      string   `bson:"_id,omitempty"`
+	Question      string   `bson:"question"`
 	CorrectAnswer string   `bson:"correctAnswer"`
 	Answers       []string `bson:"answers"`
 }
 
 type Quiz struct {
-	Name      string     `bson:"name"`
-	Questions []Question `bson:"question"`
-	UserID    string     `bson:"userId"`
+	ID          primitive.ObjectID `bson:"_id,omitempty"`
+	UserID      string             `bson:"userId"`
+	Name        string             `bson:"name"`
+	Description string             `bson:"description"`
+	Questions   []Question         `bson:"question"`
 }
