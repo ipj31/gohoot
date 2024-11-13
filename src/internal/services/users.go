@@ -4,19 +4,14 @@ import (
 	"context"
 
 	"github.com/ipj31/gohoot/internal/database"
+	"github.com/ipj31/gohoot/internal/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type User struct {
-	ID             primitive.ObjectID `bson:"_id,omitempty"`
-	Email          string             `bson:"email"`
-	HashedPassword string             `bson:"hashedPassword"`
-}
-
-func HashPassword(password string) (string, error) {
+func hashPassword(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
@@ -24,7 +19,7 @@ func HashPassword(password string) (string, error) {
 	return string(hashedPassword), err
 }
 
-func CheckPassword(hashedPassword, password string) error {
+func checkPassword(hashedPassword, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
 
@@ -42,12 +37,12 @@ func NewUserService(databaseClient *database.MongoClient) *UserService {
 }
 
 func (us *UserService) CreateUser(email, password string) (string, error) {
-	hash, err := HashPassword(password)
+	hash, err := hashPassword(password)
 	if err != nil {
 		return "", err
 	}
 
-	result, err := us.userCollection.InsertOne(context.Background(), User{Email: email, HashedPassword: hash})
+	result, err := us.userCollection.InsertOne(context.Background(), models.User{Email: email, HashedPassword: hash})
 	if err != nil {
 		return "", err
 	}
@@ -57,13 +52,13 @@ func (us *UserService) CreateUser(email, password string) (string, error) {
 }
 
 func (us *UserService) VerifyLogin(email, password string) (string, bool, error) {
-	var user User
+	var user models.User
 	err := us.userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
 	if err != nil {
 		return "", false, err
 	}
 
-	err = CheckPassword(user.HashedPassword, password)
+	err = checkPassword(user.HashedPassword, password)
 	if err != nil {
 		return "", false, err
 	}
@@ -71,11 +66,14 @@ func (us *UserService) VerifyLogin(email, password string) (string, bool, error)
 	return user.ID.Hex(), true, err
 }
 
-func (us *UserService) UniqueEmail(email string) bool {
-	var user User
+func (us *UserService) UniqueEmail(email string) (bool, error) {
+	var user models.User
 	err := us.userCollection.FindOne(context.Background(), bson.M{"email": email}).Decode(&user)
-	if err != nil {
-		return false
+	if err == mongo.ErrNoDocuments {
+		return true, nil
 	}
-	return true
+	if err != nil {
+		return false, err
+	}
+	return false, nil
 }

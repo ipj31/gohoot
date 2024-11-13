@@ -63,3 +63,29 @@ func SetTokenCookie(w http.ResponseWriter, token string) {
 		Secure:   false, // TODO change to true when using https
 	})
 }
+
+func ClearTokenCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "token",
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   false, // set to true when using https
+	})
+}
+
+func UserLoggedIn(r *http.Request) bool {
+	cookie, err := r.Cookie("token")
+	if err != nil {
+		return false
+	}
+
+	_, err = ValidateJWT(cookie.Value)
+	if err != nil {
+		return false
+	}
+
+	return true
+}
