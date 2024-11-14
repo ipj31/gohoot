@@ -21,3 +21,9 @@ type Quiz struct {
 	Description string             `bson:"description"`
 	Questions   []Question         `bson:"question"`
 }
+
+func NewQuiz() Quiz {
+	return Quiz{
+		ID: primitive.NewObjectID(),
+	}
+}

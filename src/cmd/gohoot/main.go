@@ -35,5 +35,10 @@ func main() {
 	router.Handle("/quizzes", middleware.AuthMiddleware(http.HandlerFunc(userQuizzesRoute.HandleUserQuizzes)))
 	// TODO add routes to handle all the operations for quizzes with correct verbs
 
+	// TODO change to post
+	router.Handle("GET /quiz/{id}", middleware.AuthMiddleware(http.HandlerFunc(userQuizzesRoute.HandleGetQuiz)))
+	// TODO add endpoint instead to add a blank question to the quiz
+	// router.Handle("GET /quiz/add-question", templ.Handler())
+
 	http.ListenAndServe("", router)
 }

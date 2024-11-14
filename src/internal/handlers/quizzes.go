@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 
+	"github.com/ipj31/gohoot/internal/models"
 	"github.com/ipj31/gohoot/internal/services"
 	"github.com/ipj31/gohoot/web/templates"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -46,22 +48,27 @@ func (uq *UserQuizzes) HandleGetQuiz(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO check if the quizID is "new" and create a new quiz
+	var quiz models.Quiz
+	var err error
+	if quizID == "new" {
+		// TODO add the blank quiz to the db i think
+		quiz = models.NewQuiz()
+	} else {
+		quiz, err = uq.quizzesService.GetQuiz(quizID)
+		if err == mongo.ErrNoDocuments {
+			http.NotFound(w, r)
+			return
+		}
+		if err != nil {
+			http.Error(w, "error fetching quiz from db", http.StatusInternalServerError)
+			return
+		}
 
-	quiz, err := uq.quizzesService.GetQuiz(quizID)
-	if err == mongo.ErrNoDocuments {
-		http.NotFound(w, r)
-		return
-	}
-	if err != nil {
-		http.Error(w, "error fetching quiz from db", http.StatusInternalServerError)
-		return
+		if quiz.UserID != userID {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
 	}
 
-	if quiz.UserID != userID {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	// TODO send the template when finished
+	templates.Quiz(quiz).Render(context.Background(), w)
 }

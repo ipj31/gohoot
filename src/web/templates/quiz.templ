@@ -5,12 +5,29 @@ import (
 	"github.com/ipj31/gohoot/internal/models"
 )
 
+templ Question(index int, question models.Question) {
+	<div>
+		<label for="question">Question</label>
+		<input type="text" id="question" name="name" required value={ question.Question }/>
+		// TODO decide how i want to handle new answers
+		// TODO render answers in a select menu where the selected is the correct answer
+	</div>
+}
+
 templ QuizEditor(quiz models.Quiz) {
-	<form hx-post={ string(templ.URL(fmt.Sprintf("/quiz/%s", quiz.ID.Hex()))) }>
-		<label for="name">Name</label>
-		<input type="text" id="name" name="name" required value={ quiz.Name }/>
-		<label for="description">Name</label>
-		<input type="text" id="description" name="description" required value={ quiz.Description }/>
+	<form hx-post={ string(templ.URL(fmt.Sprintf("/quiz/%s", quiz.ID.Hex()))) } class="space-y-4">
+		<div>
+			<label for="name">Name</label>
+			<input type="text" id="name" name="name" required value={ quiz.Name }/>
+		</div>
+		<div>
+			<label for="description">Description</label>
+			<input type="text" id="description" name="description" required value={ quiz.Description }/>
+		</div>
+		// TODO add quiz id to the endpoint
+		<button hx-get="/quiz/add-question">
+			Add Question	
+		</button>
 	</form>
 }
 
@@ -25,17 +42,6 @@ templ Quiz(quiz models.Quiz) {
 			<script src="https://unpkg.com/htmx.org@2.0.3" integrity="sha384-0895/pl2MU10Hqc6jd4RvrthNlDiE9U1tWmX7WRESftEDRosgxNsQG/Ze9YMRzHq" crossorigin="anonymous"></script>
 		</head>
 		<body>
-			<header class="fixed top-0 right-0 left-0 py-4">
-				<div class="container mx-auto flex items-center justify-between px-4">
-					<h1 class="text-white text-xl font-bold cursor-default">GoHoot!</h1>
-					<div id="buttons">
-						<a href="/quizzes" hx-boost="true" class="text-white font-bold px-4 py-2 hover:text-black">My Quizzes</a>
-						<button hx-get="/sign-out" hx-target="#buttons" hx-swap="outerHTML" class="bg-white text-blue-600 font-semibold px-4 py-2 rounded hover:bg-gray-100">
-							Log Out	
-						</button>
-					</div>
-				</div>
-			</header>
 			@QuizEditor(quiz)
 		</body>
 	</html>
