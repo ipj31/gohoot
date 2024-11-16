@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+	// FIXME this needs to be handled correctly
 	mongoClient, err := database.NewMongoMatchClient("mongodb://admin:password@localhost:27017")
 	if err != nil {
 		panic(err)
@@ -44,12 +45,15 @@ func main() {
 	router.Handle("GET /quiz/{id}", middleware.AuthMiddleware(http.HandlerFunc(userQuizzesRoute.HandleGetQuiz)))
 	router.Handle("POST /quiz/{id}", middleware.AuthMiddleware(http.HandlerFunc(userQuizzesRoute.HandleSaveQuiz)))
 
-	// TODO add endpoint instead to add a blank question to the quiz
-	// this complies with the nature of htmx of the html being the reflection of the server state
-	// so if the user needs to create a blank question that should be what is on the server
-	// imagine everything as backend
+	// router.Handle("GET /quiz/add-question", templ.Handler(templates.Question(models.Question{})))
+	// router.HandleFunc("GET /quiz/add-answer", func(w http.ResponseWriter, r *http.Request) {
+	// 	currentIndex, err := strconv.Atoi(r.URL.Query().Get("index"))
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
 
-	// router.Handle("GET /quiz/add-question", templ.Handler())
+	// 	templates.Answer("", false, currentIndex).Render(context.Background(), w)
+	// })
 
 	http.ListenAndServe("", router)
 }

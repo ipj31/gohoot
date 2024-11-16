@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/ipj31/gohoot/internal/models"
 	"github.com/ipj31/gohoot/internal/services"
@@ -94,17 +96,67 @@ func (uq *UserQuizzes) HandleSaveQuiz(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
 	quizID := r.PathValue("id")
 	if quizID == "" {
 		http.Error(w, "error parsing quiz id from path params", http.StatusNotFound)
 		return
 	}
 
-	// TODO figure out how to handle all the questions
+	// Count how many questions we have
+	questionCount := 0
+	for i := 0; ; i++ {
+		if _, exists := r.Form[fmt.Sprintf("question[%d].text", i)]; !exists {
+			break
+		}
+		questionCount++
+	}
+
+	questions := make([]models.Question, 0, questionCount)
+	for i := 0; i < questionCount; i++ {
+		questionText := r.FormValue(fmt.Sprintf("question[%d].text", i))
+		if questionText == "" {
+			continue
+		}
+
+		answers := r.Form[fmt.Sprintf("question[%d].answers[]", i)]
+		if len(answers) == 0 {
+			continue
+		}
+
+		// Get the correct answer index
+		correctAnswerIdx := r.FormValue(fmt.Sprintf("question[%d].correct_answer", i))
+		idx, err := strconv.Atoi(correctAnswerIdx)
+		if err != nil || idx < 0 || idx >= len(answers) {
+			http.Error(w, fmt.Sprintf("Question %d: invalid correct answer index", i+1), http.StatusBadRequest)
+			return
+		}
+
+		question := models.Question{
+			Question:      questionText,
+			Answers:       answers,
+			CorrectAnswer: answers[idx],
+		}
+		questions = append(questions, question)
+	}
+
 	updateQuiz := models.Quiz{
 		Name:        r.FormValue("name"),
 		Description: r.FormValue("description"),
-		Questions:   []models.Question{},
+		Questions:   questions,
+	}
+
+	if updateQuiz.Name == "" {
+		http.Error(w, "Quiz name is required", http.StatusBadRequest)
+		return
+	}
+	if len(updateQuiz.Questions) == 0 {
+		http.Error(w, "Quiz must have at least one question", http.StatusBadRequest)
+		return
 	}
 
 	err := uq.quizzesService.UpdateQuiz(userID, quizID, updateQuiz)

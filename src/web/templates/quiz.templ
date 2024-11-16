@@ -3,35 +3,170 @@ package templates
 import (
 	"fmt"
 	"github.com/ipj31/gohoot/internal/models"
+	"strconv"
 )
 
-templ Question(index int, question models.Question) {
-	<div>
-		<label for="question">Question</label>
-		<input type="text" id="question" name="name" required value={ question.Question }/>
-		// TODO decide how i want to handle new answers
-		// TODO render answers in a select menu where the selected is the correct answer
+templ Answer(answer string, isCorrect bool, questionIndex, answerIndex int) {
+	<div class="flex items-center gap-2">
+		<input type="radio" 
+			   name={ fmt.Sprintf("question[%d].correct_answer", questionIndex) }
+			   value={ strconv.Itoa(answerIndex) }
+			   checked?={ isCorrect }/>
+		<input type="text" 
+			   name={ fmt.Sprintf("question[%d].answers[]", questionIndex) }
+			   required 
+			   value={ answer }/>
+		<button type="button" 
+				class="text-red-500"
+				onclick="this.parentElement.remove()">
+			Remove
+		</button>
 	</div>
 }
 
-templ QuizEditor(quiz models.Quiz) {
-	<form hx-post={ string(templ.URL(fmt.Sprintf("/quiz/%s", quiz.ID.Hex()))) } hx-swap="none" class="space-y-4">
-		<div>
-			<label for="name">Name</label>
-			<input type="text" id="name" name="name" required value={ quiz.Name }/>
+templ Question(question models.Question, index int) {
+	<fieldset class="p-4 mb-4 border rounded">
+		<legend class="px-2 font-bold">Question { strconv.Itoa(index + 1) }</legend>
+		
+		<div class="mb-4">
+			<label for={ fmt.Sprintf("question[%d].text", index) }>Question Text</label>
+			<input type="text" 
+				   id={ fmt.Sprintf("question[%d].text", index) }
+				   name={ fmt.Sprintf("question[%d].text", index) }
+				   required 
+				   value={ question.Question }/>
 		</div>
-		<div>
-			<label for="description">Description</label>
-			<input type="text" id="description" name="description" required value={ quiz.Description }/>
-		</div>
-		// TODO add quiz id to the endpoint
-		<div>
-			<button hx-get="/quiz/add-question">
-				Add Question	
+
+		<fieldset class="p-3 mb-4 border rounded">
+			<legend class="px-2 text-sm">Answers</legend>
+			<div class="space-y-2 answers-container">
+				for i, answer := range question.Answers {
+					@Answer(answer, answer == question.CorrectAnswer, index, i)
+				}
+			</div>
+			<button type="button"
+					class="mt-2"
+					onclick="addAnswer(this.previousElementSibling, { index })">
+				Add Answer
 			</button>
-		</div>
-		<button type="submit">Save</button>
+		</fieldset>
+
+		<button type="button" 
+				class="text-red-500"
+				onclick="this.closest('fieldset').remove()">
+			Remove Question
+		</button>
+	</fieldset>
+}
+
+templ QuizEditor(quiz models.Quiz) {
+	<form hx-post={ fmt.Sprintf("/quiz/%s", quiz.ID.Hex()) }
+		  hx-swap="none"
+		  class="space-y-4">
+		<fieldset class="p-4 border rounded">
+			<legend class="px-2 font-bold">Quiz Details</legend>
+			
+			<div class="mb-4">
+				<label for="name">Quiz Name</label>
+				<input type="text" id="name" name="name" required value={ quiz.Name }/>
+			</div>
+			
+			<div>
+				<label for="description">Description</label>
+				<input type="text" id="description" name="description" required value={ quiz.Description }/>
+			</div>
+		</fieldset>
+
+		<fieldset class="p-4 border rounded">
+			<legend class="px-2 font-bold">Questions</legend>
+			
+			<div id="questions-container" class="space-y-4">
+				for i, question := range quiz.Questions {
+					@Question(question, i)
+				}
+			</div>
+			
+			<button type="button"
+					class="mt-4"
+					onclick="addQuestion()">
+				Add Question
+			</button>
+		</fieldset>
+
+		<button type="submit" class="px-4 py-2 text-white bg-blue-500 rounded">
+			Save Quiz
+		</button>
 	</form>
+
+	<script>
+		function addAnswer(container, questionIndex) {
+			const answerIndex = container.children.length;
+			const newAnswer = `
+				<div class="flex items-center gap-2">
+					<input type="radio" 
+						   name="question[${questionIndex}].correct_answer"
+						   value="${answerIndex}">
+					<input type="text" 
+						   name="question[${questionIndex}].answers[]" 
+						   required>
+					<button type="button" 
+							class="text-red-500" 
+							onclick="this.parentElement.remove()">
+						Remove
+					</button>
+				</div>
+		 `;
+			container.insertAdjacentHTML('beforeend', newAnswer);
+		}
+
+		function addQuestion() {
+			const questionIndex = document.querySelectorAll('#questions-container > fieldset').length;
+			const newQuestion = `
+				<fieldset class="p-4 mb-4 border rounded">
+					<legend class="px-2 font-bold">Question ${questionIndex + 1}</legend>
+					
+					<div class="mb-4">
+						<label>Question Text</label>
+						<input type="text" 
+							   name="question[${questionIndex}].text" 
+							   required>
+					</div>
+
+					<fieldset class="p-3 mb-4 border rounded">
+						<legend class="px-2 text-sm">Answers</legend>
+						<div class="space-y-2 answers-container">
+							<!-- Initial answer -->
+							<div class="flex items-center gap-2">
+								<input type="radio" 
+									   name="question[${questionIndex}].correct_answer"
+									   value="0">
+								<input type="text" 
+									   name="question[${questionIndex}].answers[]" 
+									   required>
+								<button type="button" 
+										class="text-red-500" 
+										onclick="this.parentElement.remove()">
+									Remove
+								</button>
+							</div>
+						</div>
+						<button type="button"
+								class="mt-2"
+								onclick="addAnswer(this.previousElementSibling, ${questionIndex})">
+							Add Answer
+						</button>
+					</fieldset>
+
+					<button type="button" 
+							class="text-red-500"
+							onclick="this.closest('fieldset').remove()">
+						Remove Question
+					</button>
+				</fieldset>
+		 `;
+			document.getElementById('questions-container').insertAdjacentHTML('beforeend', newQuestion);
+		}
+	</script>
 }
 
 templ Quiz(quiz models.Quiz) {
