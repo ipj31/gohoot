@@ -15,7 +15,7 @@ templ Question(index int, question models.Question) {
 }
 
 templ QuizEditor(quiz models.Quiz) {
-	<form hx-post={ string(templ.URL(fmt.Sprintf("/quiz/%s", quiz.ID.Hex()))) } class="space-y-4">
+	<form hx-post={ string(templ.URL(fmt.Sprintf("/quiz/%s", quiz.ID.Hex()))) } hx-swap="none" class="space-y-4">
 		<div>
 			<label for="name">Name</label>
 			<input type="text" id="name" name="name" required value={ quiz.Name }/>
@@ -25,9 +25,12 @@ templ QuizEditor(quiz models.Quiz) {
 			<input type="text" id="description" name="description" required value={ quiz.Description }/>
 		</div>
 		// TODO add quiz id to the endpoint
-		<button hx-get="/quiz/add-question">
-			Add Question	
-		</button>
+		<div>
+			<button hx-get="/quiz/add-question">
+				Add Question	
+			</button>
+		</div>
+		<button type="submit">Save</button>
 	</form>
 }
 
@@ -37,7 +40,7 @@ templ Quiz(quiz models.Quiz) {
 		<head>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-			<title>GoHoot! - { quiz.Name }</title>
+			<title>GoHoot! - Quiz Editor</title>
 			<script src="https://cdn.tailwindcss.com"></script>
 			<script src="https://unpkg.com/htmx.org@2.0.3" integrity="sha384-0895/pl2MU10Hqc6jd4RvrthNlDiE9U1tWmX7WRESftEDRosgxNsQG/Ze9YMRzHq" crossorigin="anonymous"></script>
 		</head>
@@ -61,7 +64,11 @@ templ UserQuizzes(quizzes []models.Quiz) {
 			<div class="flex space-x-3">
 				if len(quizzes) != 0 {
 					for _, quiz := range quizzes {
-						<a href={ templ.URL(fmt.Sprintf("/quizzes/%s", quiz.Name)) } hx-boost="true">{ quiz.Name }</a>
+						if quiz.Name == "" {
+							<a href={ templ.URL(fmt.Sprintf("/quiz/%s", quiz.ID.Hex())) } hx-boost="true">New Quiz</a>
+						} else {
+							<a href={ templ.URL(fmt.Sprintf("/quiz/%s", quiz.ID.Hex())) } hx-boost="true">{ quiz.Name }</a>
+						}
 					}
 				} else {
 					<div>No quizzes found!</div>

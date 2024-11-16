@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/ipj31/gohoot/internal/database"
@@ -64,4 +65,38 @@ func (qs *QuizzesService) GetQuiz(quizID string) (models.Quiz, error) {
 	}
 
 	return quiz, nil
+}
+
+var ErrUnauthorized = errors.New("user is not authorized to preform this action")
+
+func (qs *QuizzesService) UpdateQuiz(userID, quizID string, quiz models.Quiz) error {
+	quizObjectID, err := primitive.ObjectIDFromHex(quizID)
+	if err != nil {
+		return fmt.Errorf("error converting quizID to primitive with id %s: %w", quizID, err)
+	}
+
+	filter := bson.M{"_id": quizObjectID}
+	var existingQuiz models.Quiz
+	err = qs.quizCollection.FindOne(context.Background(), filter).Decode(&existingQuiz)
+	if err != nil {
+		return fmt.Errorf("error retrieving quiz with id %s: %w", quiz.ID.Hex(), err)
+	}
+
+	if existingQuiz.UserID != userID {
+		return ErrUnauthorized
+	}
+
+	update := bson.M{
+		"$set": bson.M{
+			"name":        quiz.Name,
+			"description": quiz.Description,
+			"questions":   quiz.Questions,
+		},
+	}
+	_, err = qs.quizCollection.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return fmt.Errorf("error updating quiz with id %s: %w", quiz.ID.Hex(), err)
+	}
+
+	return nil
 }

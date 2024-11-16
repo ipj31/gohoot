@@ -35,6 +35,27 @@ func (uq *UserQuizzes) HandleUserQuizzes(w http.ResponseWriter, r *http.Request)
 	templates.UserQuizzes(quizzes).Render(r.Context(), w)
 }
 
+func (uq *UserQuizzes) HandleNewQuiz(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value("user_id").(string)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	quiz := models.Quiz{
+		Name:      "New Quiz",
+		UserID:    userID,
+		Questions: []models.Question{},
+	}
+	quizID, err := uq.quizzesService.CreateQuiz(quiz)
+	if err != nil {
+		http.Error(w, "error creating quiz", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("HX-Redirect", "/quiz/"+quizID)
+}
+
 func (uq *UserQuizzes) HandleGetQuiz(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("user_id").(string)
 	if !ok {
@@ -48,27 +69,50 @@ func (uq *UserQuizzes) HandleGetQuiz(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var quiz models.Quiz
-	var err error
-	if quizID == "new" {
-		// TODO add the blank quiz to the db i think
-		quiz = models.NewQuiz()
-	} else {
-		quiz, err = uq.quizzesService.GetQuiz(quizID)
-		if err == mongo.ErrNoDocuments {
-			http.NotFound(w, r)
-			return
-		}
-		if err != nil {
-			http.Error(w, "error fetching quiz from db", http.StatusInternalServerError)
-			return
-		}
+	quiz, err := uq.quizzesService.GetQuiz(quizID)
+	if err == mongo.ErrNoDocuments {
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		http.Error(w, "error fetching quiz from db", http.StatusInternalServerError)
+		return
+	}
 
-		if quiz.UserID != userID {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
+	if quiz.UserID != userID {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
 	}
 
 	templates.Quiz(quiz).Render(context.Background(), w)
+}
+
+func (uq *UserQuizzes) HandleSaveQuiz(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value("user_id").(string)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	quizID := r.PathValue("id")
+	if quizID == "" {
+		http.Error(w, "error parsing quiz id from path params", http.StatusNotFound)
+		return
+	}
+
+	// TODO figure out how to handle all the questions
+	updateQuiz := models.Quiz{
+		Name:        r.FormValue("name"),
+		Description: r.FormValue("description"),
+		Questions:   []models.Question{},
+	}
+
+	err := uq.quizzesService.UpdateQuiz(userID, quizID, updateQuiz)
+	if err == services.ErrUnauthorized {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }

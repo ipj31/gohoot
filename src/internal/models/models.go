@@ -19,11 +19,5 @@ type Quiz struct {
 	UserID      string             `bson:"userId"`
 	Name        string             `bson:"name"`
 	Description string             `bson:"description"`
-	Questions   []Question         `bson:"question"`
-}
-
-func NewQuiz() Quiz {
-	return Quiz{
-		ID: primitive.NewObjectID(),
-	}
+	Questions   []Question         `bson:"questions"`
 }
