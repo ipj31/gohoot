@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/ipj31/gohoot/internal/models"
 	"github.com/ipj31/gohoot/internal/services"
@@ -96,14 +95,14 @@ func (uq *UserQuizzes) HandleSaveQuiz(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Failed to parse form", http.StatusBadRequest)
-		return
-	}
-
 	quizID := r.PathValue("id")
 	if quizID == "" {
 		http.Error(w, "error parsing quiz id from path params", http.StatusNotFound)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
 		return
 	}
 
@@ -128,18 +127,26 @@ func (uq *UserQuizzes) HandleSaveQuiz(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		// Get the correct answer index
-		correctAnswerIdx := r.FormValue(fmt.Sprintf("question[%d].correct_answer", i))
-		idx, err := strconv.Atoi(correctAnswerIdx)
-		if err != nil || idx < 0 || idx >= len(answers) {
-			http.Error(w, fmt.Sprintf("Question %d: invalid correct answer index", i+1), http.StatusBadRequest)
+		correctAnswer := r.FormValue(fmt.Sprintf("question[%d].correct_answer", i))
+
+		// Validate that the correct answer is one of the answers
+		hasCorrectAnswer := false
+		for _, answer := range answers {
+			if answer == correctAnswer {
+				hasCorrectAnswer = true
+				break
+			}
+		}
+
+		if !hasCorrectAnswer {
+			http.Error(w, fmt.Sprintf("Question %d: correct answer must be one of the provided answers", i+1), http.StatusBadRequest)
 			return
 		}
 
 		question := models.Question{
 			Question:      questionText,
 			Answers:       answers,
-			CorrectAnswer: answers[idx],
+			CorrectAnswer: correctAnswer,
 		}
 		questions = append(questions, question)
 	}
@@ -166,5 +173,29 @@ func (uq *UserQuizzes) HandleSaveQuiz(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (uq *UserQuizzes) HandleDeleteQuiz(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value("user_id").(string)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	quizID := r.PathValue("id")
+	if quizID == "" {
+		http.Error(w, "error parsing quiz id from path params", http.StatusNotFound)
+		return
+	}
+
+	err := uq.quizzesService.DeleteQuiz(userID, quizID)
+	if err == mongo.ErrNoDocuments {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }

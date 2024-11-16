@@ -39,21 +39,10 @@ func main() {
 	// Quizzes
 	router.Handle("/quizzes", middleware.AuthMiddleware(http.HandlerFunc(userQuizzesRoute.HandleUserQuizzes)))
 
-	// TODO add routes to handle all the operations for quizzes with correct verbs
-
 	router.Handle("GET /quiz/new", middleware.AuthMiddleware(http.HandlerFunc(userQuizzesRoute.HandleNewQuiz)))
 	router.Handle("GET /quiz/{id}", middleware.AuthMiddleware(http.HandlerFunc(userQuizzesRoute.HandleGetQuiz)))
 	router.Handle("POST /quiz/{id}", middleware.AuthMiddleware(http.HandlerFunc(userQuizzesRoute.HandleSaveQuiz)))
-
-	// router.Handle("GET /quiz/add-question", templ.Handler(templates.Question(models.Question{})))
-	// router.HandleFunc("GET /quiz/add-answer", func(w http.ResponseWriter, r *http.Request) {
-	// 	currentIndex, err := strconv.Atoi(r.URL.Query().Get("index"))
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-
-	// 	templates.Answer("", false, currentIndex).Render(context.Background(), w)
-	// })
+	router.Handle("DELETE /quiz/{id}", middleware.AuthMiddleware(http.HandlerFunc(userQuizzesRoute.HandleDeleteQuiz)))
 
 	http.ListenAndServe("", router)
 }

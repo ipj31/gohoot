@@ -7,17 +7,20 @@ import (
 )
 
 templ Answer(answer string, isCorrect bool, questionIndex, answerIndex int) {
-	<div class="flex items-center gap-2">
+	<div class="flex items-center gap-3 p-2 rounded hover:bg-gray-50">
 		<input type="radio" 
 			   name={ fmt.Sprintf("question[%d].correct_answer", questionIndex) }
-			   value={ strconv.Itoa(answerIndex) }
-			   checked?={ isCorrect }/>
+			   value={ answer }
+			   checked?={ isCorrect }
+			   class="w-4 h-4 text-blue-600"/>
 		<input type="text" 
 			   name={ fmt.Sprintf("question[%d].answers[]", questionIndex) }
 			   required 
-			   value={ answer }/>
+			   value={ answer }
+			   onchange="this.previousElementSibling.value = this.value"
+			   class="flex-1 p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"/>
 		<button type="button" 
-				class="text-red-500"
+				class="px-3 py-1 text-red-500 transition-colors rounded hover:text-red-700 hover:bg-red-50"
 				onclick="this.parentElement.remove()">
 			Remove
 		</button>
@@ -25,34 +28,35 @@ templ Answer(answer string, isCorrect bool, questionIndex, answerIndex int) {
 }
 
 templ Question(question models.Question, index int) {
-	<fieldset class="p-4 mb-4 border rounded">
-		<legend class="px-2 font-bold">Question { strconv.Itoa(index + 1) }</legend>
+	<fieldset class="p-6 mb-4 border border-gray-200 rounded-lg shadow-sm">
+		<legend class="px-3 py-1 text-lg font-bold bg-white border border-gray-200 rounded">Question { strconv.Itoa(index + 1) }</legend>
 		
-		<div class="mb-4">
-			<label for={ fmt.Sprintf("question[%d].text", index) }>Question Text</label>
+		<div class="mb-6">
+			<label for={ fmt.Sprintf("question[%d].text", index) } class="block mb-2 font-medium text-gray-700">Question Text</label>
 			<input type="text" 
 				   id={ fmt.Sprintf("question[%d].text", index) }
 				   name={ fmt.Sprintf("question[%d].text", index) }
 				   required 
-				   value={ question.Question }/>
+				   value={ question.Question }
+				   class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"/>
 		</div>
 
-		<fieldset class="p-3 mb-4 border rounded">
-			<legend class="px-2 text-sm">Answers</legend>
-			<div class="space-y-2 answers-container">
+		<fieldset class="p-4 mb-4 border border-gray-200 rounded-lg bg-gray-50">
+			<legend class="px-2 text-sm font-medium text-gray-700">Answers</legend>
+			<div class="space-y-3 answers-container">
 				for i, answer := range question.Answers {
 					@Answer(answer, answer == question.CorrectAnswer, index, i)
 				}
 			</div>
 			<button type="button"
-					class="mt-2"
+					class="px-4 py-2 mt-4 text-blue-600 transition-colors border border-blue-200 rounded-md hover:bg-blue-50"
 					onclick="addAnswer(this.previousElementSibling, { index })">
-				Add Answer
+				+ Add Answer
 			</button>
 		</fieldset>
 
 		<button type="button" 
-				class="text-red-500"
+				class="px-4 py-2 text-red-500 transition-colors border border-red-200 rounded-md hover:text-red-700 hover:bg-red-50"
 				onclick="this.closest('fieldset').remove()">
 			Remove Question
 		</button>
@@ -62,55 +66,64 @@ templ Question(question models.Question, index int) {
 templ QuizEditor(quiz models.Quiz) {
 	<form hx-post={ fmt.Sprintf("/quiz/%s", quiz.ID.Hex()) }
 		  hx-swap="none"
-		  class="space-y-4">
-		<fieldset class="p-4 border rounded">
-			<legend class="px-2 font-bold">Quiz Details</legend>
+		  class="max-w-4xl p-6 mx-auto space-y-6">
+		<fieldset class="p-6 border border-gray-200 rounded-lg shadow-sm">
+			<legend class="px-3 py-1 text-xl font-bold bg-white border border-gray-200 rounded">Quiz Details</legend>
 			
-			<div class="mb-4">
-				<label for="name">Quiz Name</label>
-				<input type="text" id="name" name="name" required value={ quiz.Name }/>
+			<div class="mb-6">
+				<label for="name" class="block mb-2 font-medium text-gray-700">Quiz Name</label>
+				<input type="text" id="name" name="name" required value={ quiz.Name }
+					   class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"/>
 			</div>
 			
 			<div>
-				<label for="description">Description</label>
-				<input type="text" id="description" name="description" required value={ quiz.Description }/>
+				<label for="description" class="block mb-2 font-medium text-gray-700">Description</label>
+				<input type="text" id="description" name="description" required value={ quiz.Description }
+					   class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"/>
 			</div>
 		</fieldset>
 
-		<fieldset class="p-4 border rounded">
-			<legend class="px-2 font-bold">Questions</legend>
+		<fieldset class="p-6 border border-gray-200 rounded-lg shadow-sm">
+			<legend class="px-3 py-1 text-xl font-bold bg-white border border-gray-200 rounded">Questions</legend>
 			
-			<div id="questions-container" class="space-y-4">
+			<div id="questions-container" class="space-y-6">
 				for i, question := range quiz.Questions {
 					@Question(question, i)
 				}
 			</div>
 			
 			<button type="button"
-					class="mt-4"
+					class="px-4 py-2 mt-6 text-blue-600 transition-colors border border-blue-200 rounded-md hover:bg-blue-50"
 					onclick="addQuestion()">
-				Add Question
+				+ Add Question
 			</button>
 		</fieldset>
 
-		<button type="submit" class="px-4 py-2 text-white bg-blue-500 rounded">
+		<button type="submit" class="w-full px-6 py-3 text-white transition-colors bg-blue-600 rounded-md shadow-sm hover:bg-blue-700">
 			Save Quiz
 		</button>
 	</form>
 
 	<script>
+		// Did it this instead of handling it on the backend for a couple reason
+		// - a lot less logic
+		// - less load on server
+		// - easier to reason about
+		// It does make changes and styling a lot more anoying, but I do not plan on making many changes to this page
 		function addAnswer(container, questionIndex) {
-			const answerIndex = container.children.length;
 			const newAnswer = `
-				<div class="flex items-center gap-2">
+				<div class="flex items-center gap-3 p-2 rounded hover:bg-gray-50">
 					<input type="radio" 
 						   name="question[${questionIndex}].correct_answer"
-						   value="${answerIndex}">
+						   value=""
+						   class="w-4 h-4 text-blue-600">
 					<input type="text" 
 						   name="question[${questionIndex}].answers[]" 
-						   required>
+						   required
+						   onchange="this.previousElementSibling.value = this.value"
+						   class="flex-1 p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
 					<button type="button" 
-							class="text-red-500" 
+							class="px-3 py-1 text-red-500 transition-colors rounded hover:text-red-700 hover:bg-red-50"
 							onclick="this.parentElement.remove()">
 						Remove
 					</button>
@@ -122,43 +135,46 @@ templ QuizEditor(quiz models.Quiz) {
 		function addQuestion() {
 			const questionIndex = document.querySelectorAll('#questions-container > fieldset').length;
 			const newQuestion = `
-				<fieldset class="p-4 mb-4 border rounded">
-					<legend class="px-2 font-bold">Question ${questionIndex + 1}</legend>
+				<fieldset class="p-6 mb-4 border border-gray-200 rounded-lg shadow-sm">
+					<legend class="px-3 py-1 text-lg font-bold bg-white border border-gray-200 rounded">Question ${questionIndex + 1}</legend>
 					
-					<div class="mb-4">
-						<label>Question Text</label>
+					<div class="mb-6">
+						<label class="block mb-2 font-medium text-gray-700">Question Text</label>
 						<input type="text" 
 							   name="question[${questionIndex}].text" 
-							   required>
+							   required
+							   class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
 					</div>
 
-					<fieldset class="p-3 mb-4 border rounded">
-						<legend class="px-2 text-sm">Answers</legend>
-						<div class="space-y-2 answers-container">
-							<!-- Initial answer -->
-							<div class="flex items-center gap-2">
+					<fieldset class="p-4 mb-4 border border-gray-200 rounded-lg bg-gray-50">
+						<legend class="px-2 text-sm font-medium text-gray-700">Answers</legend>
+						<div class="space-y-3 answers-container">
+							<div class="flex items-center gap-3 p-2 rounded hover:bg-gray-50">
 								<input type="radio" 
 									   name="question[${questionIndex}].correct_answer"
-									   value="0">
+									   value=""
+									   class="w-4 h-4 text-blue-600">
 								<input type="text" 
 									   name="question[${questionIndex}].answers[]" 
-									   required>
+									   required
+									   onchange="this.previousElementSibling.value = this.value"
+									   class="flex-1 p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
 								<button type="button" 
-										class="text-red-500" 
+										class="px-3 py-1 text-red-500 transition-colors rounded hover:text-red-700 hover:bg-red-50"
 										onclick="this.parentElement.remove()">
 									Remove
 								</button>
 							</div>
 						</div>
 						<button type="button"
-								class="mt-2"
+								class="px-4 py-2 mt-4 text-blue-600 transition-colors border border-blue-200 rounded-md hover:bg-blue-50"
 								onclick="addAnswer(this.previousElementSibling, ${questionIndex})">
-							Add Answer
+							+ Add Answer
 						</button>
 					</fieldset>
 
 					<button type="button" 
-							class="text-red-500"
+							class="px-4 py-2 text-red-500 transition-colors border border-red-200 rounded-md hover:text-red-700 hover:bg-red-50"
 							onclick="this.closest('fieldset').remove()">
 						Remove Question
 					</button>
@@ -179,8 +195,24 @@ templ Quiz(quiz models.Quiz) {
 			<script src="https://cdn.tailwindcss.com"></script>
 			<script src="https://unpkg.com/htmx.org@2.0.3" integrity="sha384-0895/pl2MU10Hqc6jd4RvrthNlDiE9U1tWmX7WRESftEDRosgxNsQG/Ze9YMRzHq" crossorigin="anonymous"></script>
 		</head>
-		<body>
-			@QuizEditor(quiz)
+		<body class="min-h-screen bg-gray-50">
+			<nav class="bg-white shadow-sm">
+				<div class="flex items-center justify-between max-w-4xl px-6 py-4 mx-auto">
+					<div class="flex items-center gap-4">
+						<a href="/quizzes" class="flex items-center gap-2 text-gray-600 transition-colors hover:text-gray-800">
+							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+							</svg>
+							Back to Quizzes
+						</a>
+						<div class="w-px h-6 bg-gray-200"></div>
+						<a href="/" class="text-xl font-bold text-blue-600">GoHoot!</a>
+					</div>
+				</div>
+			</nav>
+			<main class="py-8">
+				@QuizEditor(quiz)
+			</main>
 		</body>
 	</html>
 }
@@ -195,21 +227,49 @@ templ UserQuizzes(quizzes []models.Quiz) {
 			<script src="https://cdn.tailwindcss.com"></script>
 			<script src="https://unpkg.com/htmx.org@2.0.3" integrity="sha384-0895/pl2MU10Hqc6jd4RvrthNlDiE9U1tWmX7WRESftEDRosgxNsQG/Ze9YMRzHq" crossorigin="anonymous"></script>
 		</head>
-		<body>
-			<div class="flex space-x-3">
-				if len(quizzes) != 0 {
-					for _, quiz := range quizzes {
-						if quiz.Name == "" {
-							<a href={ templ.URL(fmt.Sprintf("/quiz/%s", quiz.ID.Hex())) } hx-boost="true">New Quiz</a>
-						} else {
-							<a href={ templ.URL(fmt.Sprintf("/quiz/%s", quiz.ID.Hex())) } hx-boost="true">{ quiz.Name }</a>
+		<body class="min-h-screen bg-gray-50">
+			<nav class="bg-white shadow-sm">
+				<div class="max-w-4xl px-6 py-4 mx-auto">
+					<a href="/" class="text-xl font-bold text-blue-600">GoHoot!</a>
+				</div>
+			</nav>
+			<main class="max-w-4xl px-6 py-8 mx-auto">
+				<h1 class="mb-6 text-2xl font-bold">Your Quizzes</h1>
+				<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+					if len(quizzes) != 0 {
+						for _, quiz := range quizzes {
+							<div class="transition-shadow bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md group">
+								<div class="flex items-center justify-between p-4">
+									<a href={ templ.URL(fmt.Sprintf("/quiz/%s", quiz.ID.Hex())) }
+									   class="flex-1">
+										if quiz.Name == "" {
+											<span class="font-medium text-blue-600">New Quiz</span>
+										} else {
+											<span class="font-medium">{ quiz.Name }</span>
+										}
+									</a>
+									<button 
+										hx-delete={ fmt.Sprintf("/quiz/%s", quiz.ID.Hex()) }
+										hx-confirm="Are you sure you want to delete this quiz?"
+										hx-target="closest div.group"
+										hx-swap="outerHTML"
+										class="p-1 text-red-500 transition-colors transition-opacity rounded opacity-0 hover:text-red-700 hover:bg-red-50 group-hover:opacity-100">
+										<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+											<path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+										</svg>
+									</button>
+								</div>
+							</div>
 						}
+					} else {
+						<div class="py-8 text-center text-gray-500 col-span-full">No quizzes found!</div>
 					}
-				} else {
-					<div>No quizzes found!</div>
-				}
-				<a href="/quiz/new" hx-boost="true">Create a quiz</a>
-			</div>
+					<a href="/quiz/new" 
+					   class="flex items-center justify-center p-4 transition-shadow border border-blue-200 rounded-lg shadow-sm bg-blue-50 hover:shadow-md">
+						<span class="font-medium text-blue-600">+ Create a quiz</span>
+					</a>
+				</div>
+			</main>
 		</body>
 	</html>
 }

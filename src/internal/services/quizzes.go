@@ -69,7 +69,7 @@ func (qs *QuizzesService) GetQuiz(quizID string) (models.Quiz, error) {
 
 var ErrUnauthorized = errors.New("user is not authorized to preform this action")
 
-func (qs *QuizzesService) UpdateQuiz(userID, quizID string, quiz models.Quiz) error {
+func (qs *QuizzesService) UpdateQuiz(ownerID, quizID string, quiz models.Quiz) error {
 	quizObjectID, err := primitive.ObjectIDFromHex(quizID)
 	if err != nil {
 		return fmt.Errorf("error converting quizID to primitive with id %s: %w", quizID, err)
@@ -82,7 +82,7 @@ func (qs *QuizzesService) UpdateQuiz(userID, quizID string, quiz models.Quiz) er
 		return fmt.Errorf("error retrieving quiz with id %s: %w", quiz.ID.Hex(), err)
 	}
 
-	if existingQuiz.UserID != userID {
+	if existingQuiz.UserID != ownerID {
 		return ErrUnauthorized
 	}
 
@@ -96,6 +96,24 @@ func (qs *QuizzesService) UpdateQuiz(userID, quizID string, quiz models.Quiz) er
 	_, err = qs.quizCollection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		return fmt.Errorf("error updating quiz with id %s: %w", quiz.ID.Hex(), err)
+	}
+
+	return nil
+}
+
+func (qs *QuizzesService) DeleteQuiz(ownerID, quizID string) error {
+	quizObjectID, err := primitive.ObjectIDFromHex(quizID)
+	if err != nil {
+		return fmt.Errorf("error converting quizID to primitive with id %s: %w", quizID, err)
+	}
+
+	filter := bson.M{"_id": quizObjectID, "userId": ownerID}
+	result, err := qs.quizCollection.DeleteOne(context.Background(), filter)
+	if err != nil {
+		return fmt.Errorf("error trying to delete quiz with id %s for user %s: %w", quizID, ownerID, err)
+	}
+	if result.DeletedCount == 0 {
+		return fmt.Errorf("error no quiz with id %s for user %s: %w", quizID, ownerID, mongo.ErrNoDocuments)
 	}
 
 	return nil
